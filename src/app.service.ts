@@ -96,6 +96,9 @@ export class AppService {
 
   // ======UTIL METHODS====== //
   async doRequestCall(url: string) {
+    if(!url.startsWith('http://')) {
+      url = `http://${url}`;
+    }
     let response = this.httpService.get(url);
     try {
       let resp = await firstValueFrom(response);
