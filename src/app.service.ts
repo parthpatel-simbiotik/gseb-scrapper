@@ -4,11 +4,13 @@ import { Workbook } from 'exceljs';
 import { Response } from 'express';
 import { existsSync, mkdir, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import * as moment from 'moment';
+import { env } from 'process';
 import { firstValueFrom } from 'rxjs';
 const fs = require('fs');
 const cheerio = require('cheerio');
 const csv = require('csv-parser');
-
+var xpath = require('xpath')
+var dom = require('xmldom').DOMParser
 
 @Injectable()
 export class AppService {
@@ -30,16 +32,9 @@ export class AppService {
     workbook.creator = 'Bhagwan';
     workbook.created = new Date();
     const sheet = workbook.addWorksheet('HSC-ScienceResults');
-    sheet.columns = [
-      { header: 'SeatNumber', key: 'SeatNumber' },
-      { header: 'Name', key: 'Name' },
-      { header: 'ScienceMarks', key: 'ScienceMarks' },
-      { header: 'MathsMarks', key: 'MathsMarks' },
-      { header: 'EnglishMarks', key: 'EnglishMarks' },
-      { header: 'GujaratiMarks', key: 'GujaratiMarks' },
-      { header: 'SanskritMarks', key: 'SanskritMarks' },
-    ];
 
+    let columns = [];
+    let rowsData = [];
 
     // todo: api call
     for (let i = 0; i < seatNumbers.length; i++) {
@@ -54,25 +49,89 @@ export class AppService {
         mkdirSync(`${outputFileDirectory}htmlFiles/`);
       }
       if (!existsSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`)) {
-        htmlData = await this.doRequestCall(`${baseurl}${seatNum['SeatNumber']}`);
+        htmlData = await this.doRequestCall(`${baseurl}522lacigam/sci/${seatNum['SeatNumber'].substring(0, 3)}/${seatNum['SeatNumber'].substring(3, 5)}/${seatNum['SeatNumber']}.html`);
         writeFileSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`, htmlData);
       } else {
         htmlData = readFileSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`);
       }
 
-      // HTML Processing
+      let $ = cheerio.load(htmlData.toString());
 
+      // Fetch the name
+      const nameElement = $('b.textcolor:contains("Name:")');
+      const name = nameElement.parent().text().trim().replace('Name:', '').trim();
 
-      sheet.addRow({
-        SeatNumber: seatNum['SeatNumber'],
-        Name: '',
-        ScienceMarks: 0,
-        MathsMarks: 0,
-        EnglishMarks: 0,
-        GujaratiMarks: 0,
-        SanskritMarks: 0,
+      const sidElement = $('b.textcolor:contains("SID:")');
+      const sid = sidElement.parent().text().trim().replace('SID:', '').trim();
+
+      const resultElement = $('b.textcolor:contains("Result:")');
+      const result = resultElement.parent().text().trim().replace('Result:', '').trim();
+
+      const totalMarksElement = $('td.textcolor:contains("Total Marks")');
+      const totalMarks = totalMarksElement.parent().find('span').contents().eq(1).text();
+      const obtainedMarks = totalMarksElement.parent().find('span').contents().eq(2).text();
+      const grade = totalMarksElement.parent().find('span').contents().eq(3).text();
+
+      // Fetch the subject-wise details
+      const subjectDetails = [];
+      $('table.maintbl tr').each((index, row) => {
+        const className = $(row).attr('class');
+        if (className !== 'background1') {
+          const columns = $(row).find('td span');
+          const subject = $(columns[0]).text().trim();
+          const totalMarks = $(columns[1]).text().trim();
+          const obtainedMarks = $(columns[2]).text().trim();
+          const grade = $(columns[3]).text().trim();
+
+          subjectDetails.push({
+            subject: subject,
+            totalMarks: totalMarks,
+            obtainedMarks: obtainedMarks,
+            grade: grade
+          });
+        }
       });
+
+      subjectDetails.forEach((subject) => {
+        if (!columns.find((column) => (column.header as string).includes(`${subject.subject}`))) {
+          // columns.push({ header: `${subject.subject}-TotalMarks`, key: `${subject.subject}-TotalMarks` });
+          columns.push({ header: `${subject.subject}-ObtainedMarks`, key: `${subject.subject}-ObtainedMarks` });
+          // columns.push({ header: `${subject.subject}-Grade`, key: `${subject.subject}-Grade` });
+        }
+      });
+
+      let data = {
+        SeatNumber: seatNum['SeatNumber'],
+        Name: name,
+        SID: sid,
+        Result: result,
+        TotalMarks: totalMarks,
+        ObtainedMarks: obtainedMarks,
+        Grade: grade,
+        Percentage: ((parseFloat(obtainedMarks) / parseFloat(totalMarks)) * 100).toFixed(2)
+      };
+
+      subjectDetails.forEach((subject) => {
+        // data[`${subject.subject}-TotalMarks`] = subject.totalMarks;
+        data[`${subject.subject}-ObtainedMarks`] = subject.obtainedMarks;
+        // data[`${subject.subject}-Grade`] = subject.grade;
+      });
+      rowsData.push(data);
     }
+
+    sheet.columns = [
+      { header: 'SeatNumber', key: 'SeatNumber' },
+      { header: 'Name', key: 'Name' },
+      { header: 'SID', key: 'SID' },
+      { header: 'Result', key: 'Result' },
+      { header: 'TotalMarks', key: 'TotalMarks' },
+      { header: 'ObtainedMarks', key: 'ObtainedMarks' },
+      { header: 'Grade', key: 'Grade' },
+      { header: 'Percentage', key: 'Percentage' },
+      ...columns,
+    ];
+
+    sheet.addRows(rowsData);
 
     sheet.columns.forEach((column) => {
       column.width = column.header.length < 10 ? 10 : column.header.length;
@@ -96,10 +155,13 @@ export class AppService {
 
   // ======UTIL METHODS====== //
   async doRequestCall(url: string) {
-    if(!url.startsWith('http://')) {
+
+    console.log(env.NODE_TLS_REJECT_UNAUTHORIZED);
+    if (!url.startsWith('http')) {
       url = `http://${url}`;
     }
-    let response = this.httpService.get(url);
+    console.log(url);
+    let response = this.httpService.get(url, {});
     try {
       let resp = await firstValueFrom(response);
       // console.log(url, 'success', resp.data);
