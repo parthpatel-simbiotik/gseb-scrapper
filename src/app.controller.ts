@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { Response } from 'express';
 import { Scrap12SciDto } from './dto/scrap12sci.dto';
@@ -13,7 +13,7 @@ export class AppController {
   }
 
   @Post('/scrap/12sci')
-  scrapResultsfor12sci(@Body() data: Scrap12SciDto, @Res() res: Response) {
+  scrapResultsfor12sci(@Query() data: Scrap12SciDto, @Res() res: Response) {
     return this.appService.scrapResultsClass12(data.url, res);
   }
 }
