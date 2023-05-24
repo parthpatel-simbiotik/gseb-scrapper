@@ -67,6 +67,15 @@ export class TwelveSciService {
       const resultElement = $('b.textcolor:contains("Result:")');
       const result = resultElement.parent().text().trim().replace('Result:', '').trim();
 
+      const overallPercentileElement = $('b.textcolor:contains("Overall Percentile:")');
+      const overallPercentile = overallPercentileElement.parent().text().trim().replace('Overall Percentile:', '').trim();
+
+      const sciencePercentileElement = $('b.textcolor:contains("Science Percentile:")');
+      const sciencePercentile = sciencePercentileElement.parent().text().trim().replace('Science Percentile:', '').trim();
+
+      const theoryPercentileElement = $('b.textcolor:contains("Theory Percentile:")');
+      const theoryPercentile = theoryPercentileElement.parent().text().trim().replace('Theory Percentile:', '').trim();
+
       const totalMarksElement = $('td.textcolor:contains("Total Marks")');
       const totalMarks = totalMarksElement.parent().find('span').contents().eq(1).text();
       const obtainedMarks = totalMarksElement.parent().find('span').contents().eq(2).text();
@@ -108,7 +117,10 @@ export class TwelveSciService {
         TotalMarks: totalMarks,
         ObtainedMarks: obtainedMarks,
         Grade: grade,
-        Percentage: ((parseFloat(obtainedMarks) / parseFloat(totalMarks)) * 100).toFixed(2)
+        OverallPercentile: `${overallPercentile}%`,
+        SciencePercentile: `${sciencePercentile}%`,
+        TheoryPercentile: `${theoryPercentile}%`,
+        Percentage: `${((parseFloat(obtainedMarks) / parseFloat(totalMarks)) * 100).toFixed(2)}%`
       };
 
       subjectDetails.forEach((subject) => {
@@ -127,6 +139,9 @@ export class TwelveSciService {
       { header: 'TotalMarks', key: 'TotalMarks' },
       { header: 'ObtainedMarks', key: 'ObtainedMarks' },
       { header: 'Grade', key: 'Grade' },
+      { header: 'OverallPercentile', key: 'OverallPercentile' },
+      { header: 'SciencePercentile', key: 'SciencePercentile' },
+      { header: 'TheoryPercentile', key: 'TheoryPercentile' },
       { header: 'Percentage', key: 'Percentage' },
       ...columns,
     ];
