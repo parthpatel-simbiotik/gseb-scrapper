@@ -20,6 +20,17 @@ export class TenthService {
     return 'Hello World!';
   }
 
+  async scrapRecurrsively(res: Response) {
+    var servers = await this.csvToRows('files/servers.csv');
+    console.log('servers', servers);
+
+    for (let i = 0; i < servers.length; i++) {
+      const server = servers[i];
+      console.log(`[Scrapping from ${server['Servers']}] [${i}/${servers.length}]`);
+      this.scrapResultsClass10(server['Servers'], res);
+    }
+  }
+
   async scrapResultsClass10(baseurl: string, res: Response) {
     var inputFilePath = 'files/input/gm1.csv';
     var outputFileDirectory = `files/output${inputFilePath.substring(inputFilePath.lastIndexOf('/'), inputFilePath.lastIndexOf('.'))}/`;
@@ -67,6 +78,15 @@ export class TenthService {
       const resultElement = $('b.textcolor:contains("Result:")');
       const result = resultElement.parent().text().trim().replace('Result:', '').trim();
 
+      const overallPercentileElement = $('b.textcolor:contains("Overall Percentile:")');
+      const overallPercentile = overallPercentileElement.parent().text().trim().replace('Overall Percentile:', '').trim();
+
+      const sciencePercentileElement = $('b.textcolor:contains("Science Percentile:")');
+      const sciencePercentile = sciencePercentileElement.parent().text().trim().replace('Science Percentile:', '').trim();
+
+      const theoryPercentileElement = $('b.textcolor:contains("Theory Percentile:")');
+      const theoryPercentile = theoryPercentileElement.parent().text().trim().replace('Theory Percentile:', '').trim();
+
       const totalMarksElement = $('td.textcolor:contains("Total Marks")');
       const totalMarks = totalMarksElement.parent().find('span').contents().eq(1).text();
       const obtainedMarks = totalMarksElement.parent().find('span').contents().eq(2).text();
@@ -108,7 +128,10 @@ export class TenthService {
         TotalMarks: totalMarks,
         ObtainedMarks: obtainedMarks,
         Grade: grade,
-        Percentage: ((parseFloat(obtainedMarks) / parseFloat(totalMarks)) * 100).toFixed(2)
+        OverallPercentile: `${overallPercentile}%`,
+        SciencePercentile: `${sciencePercentile}%`,
+        TheoryPercentile: `${theoryPercentile}%`,
+        Percentage: `${((parseFloat(obtainedMarks) / parseFloat(totalMarks)) * 100).toFixed(2)}%`
       };
 
       subjectDetails.forEach((subject) => {
@@ -127,6 +150,9 @@ export class TenthService {
       { header: 'TotalMarks', key: 'TotalMarks' },
       { header: 'ObtainedMarks', key: 'ObtainedMarks' },
       { header: 'Grade', key: 'Grade' },
+      { header: 'OverallPercentile', key: 'OverallPercentile' },
+      { header: 'SciencePercentile', key: 'SciencePercentile' },
+      { header: 'TheoryPercentile', key: 'TheoryPercentile' },
       { header: 'Percentage', key: 'Percentage' },
       ...columns,
     ];
@@ -147,7 +173,7 @@ export class TenthService {
     });
 
     res.attachment(
-      `HSC-Sci-Result-${moment().format('YYYY-MM-DD hh:mm:ss a')}.xlsx`,
+      `SSC-GEN-Result-${moment().format('YYYY-MM-DD hh:mm:ss a')}.xlsx`,
     );
     await workbook.xlsx.write(res);
   }

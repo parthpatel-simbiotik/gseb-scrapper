@@ -19,12 +19,12 @@ export class AppController {
   }
 
   @Post('/scrap/12sci')
-  scrapResultsfor12sci(@Query() data: Scrap12SciDto, @Res() res: Response) {
-    return this.twelevesciService.scrapResultsClass12(data.url, res);
+  scrapResultsfor12sci(@Res() res: Response) {
+    return this.twelevesciService.scrapRecurrsively(res);
   }
 
   @Post('/scrap/10th')
-  scrapResultsfor10th(@Query() data: Scrap12SciDto, @Res() res: Response) {
-    return this.tenthService.scrapResultsClass10(data.url, res);
+  scrapResultsfor10th(@Res() res: Response) {
+    return this.tenthService.scrapRecurrsively(res);
   }
 }

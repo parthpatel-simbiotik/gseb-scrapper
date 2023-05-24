@@ -20,8 +20,19 @@ export class TwelveSciService {
     return 'Hello World!';
   }
 
+  async scrapRecurrsively(res: Response) {
+    var servers = await this.csvToRows('files/servers.csv');
+    console.log('servers', servers);
+
+    for (let i = 0; i < servers.length; i++) {
+      const server = servers[i];
+      console.log(`[Scrapping from ${server['Servers']}] [${i}/${servers.length}]`);
+      this.scrapResultsClass12(server['Servers'], res);
+    }
+  }
+
   async scrapResultsClass12(baseurl: string, res: Response) {
-    var inputFilePath = 'files/input/gm1.csv';
+    var inputFilePath = 'files/input/hscsci1.csv';
     var outputFileDirectory = `files/output${inputFilePath.substring(inputFilePath.lastIndexOf('/'), inputFilePath.lastIndexOf('.'))}/`;
     console.log('HAELLOEAO', inputFilePath, outputFileDirectory);
 
