@@ -9,8 +9,6 @@ import { firstValueFrom } from 'rxjs';
 const fs = require('fs');
 const cheerio = require('cheerio');
 const csv = require('csv-parser');
-var xpath = require('xpath')
-var dom = require('xmldom').DOMParser
 
 @Injectable()
 export class TenthService {
@@ -32,7 +30,7 @@ export class TenthService {
   }
 
   async scrapResultsClass10(baseurl: string, res: Response) {
-    var inputFilePath = 'files/input/gm1.csv';
+    var inputFilePath = 'files/input/kunadssc1.csv';
     var outputFileDirectory = `files/output${inputFilePath.substring(inputFilePath.lastIndexOf('/'), inputFilePath.lastIndexOf('.'))}/`;
     console.log('HAELLOEAO', inputFilePath, outputFileDirectory);
 
@@ -42,7 +40,7 @@ export class TenthService {
     const workbook = new Workbook();
     workbook.creator = 'Bhagwan';
     workbook.created = new Date();
-    const sheet = workbook.addWorksheet('HSC-ScienceResults');
+    const sheet = workbook.addWorksheet('SSC-Results');
 
     let columns = [];
     let rowsData = [];
@@ -60,7 +58,7 @@ export class TenthService {
         mkdirSync(`${outputFileDirectory}htmlFiles/`);
       }
       if (!existsSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`)) {
-        htmlData = await this.doRequestCall(`${baseurl}522lacigam/sci/${seatNum['SeatNumber'].substring(0, 3)}/${seatNum['SeatNumber'].substring(3, 5)}/${seatNum['SeatNumber']}.html`);
+        htmlData = await this.doRequestCall(`${baseurl}285soipmahc/ssc/${seatNum['SeatNumber'].substring(0, 3)}/${seatNum['SeatNumber'].substring(3, 5)}/${seatNum['SeatNumber']}.html`);
         writeFileSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`, htmlData);
       } else {
         htmlData = readFileSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`);
@@ -78,45 +76,46 @@ export class TenthService {
       const resultElement = $('b.textcolor:contains("Result:")');
       const result = resultElement.parent().text().trim().replace('Result:', '').trim();
 
-      const overallPercentileElement = $('b.textcolor:contains("Overall Percentile:")');
-      const overallPercentile = overallPercentileElement.parent().text().trim().replace('Overall Percentile:', '').trim();
-
-      const sciencePercentileElement = $('b.textcolor:contains("Science Percentile:")');
-      const sciencePercentile = sciencePercentileElement.parent().text().trim().replace('Science Percentile:', '').trim();
-
-      const theoryPercentileElement = $('b.textcolor:contains("Theory Percentile:")');
-      const theoryPercentile = theoryPercentileElement.parent().text().trim().replace('Theory Percentile:', '').trim();
-
-      const totalMarksElement = $('td.textcolor:contains("Total Marks")');
-      const totalMarks = totalMarksElement.parent().find('span').contents().eq(1).text();
-      const obtainedMarks = totalMarksElement.parent().find('span').contents().eq(2).text();
-      const grade = totalMarksElement.parent().find('span').contents().eq(3).text();
+      const obtainedMarks = $('tr.background1 td[colspan="4"] b.texcolor').text().split(' (')[0];
+      const overallGrade = $('tr.textcolor.background1.highlitedtd td').eq(0).text().trim();
+      const percentileRank = $('tr.textcolor.background1.highlitedtd td').eq(1).text().trim();
 
       // Fetch the subject-wise details
+      let totalMarks = 0;
       const subjectDetails = [];
-      $('table.maintbl tr').each((index, row) => {
-        const className = $(row).attr('class');
-        if (className !== 'background1') {
-          const columns = $(row).find('td span');
-          const subject = $(columns[0]).text().trim();
-          const totalMarks = $(columns[1]).text().trim();
-          const obtainedMarks = $(columns[2]).text().trim();
-          const grade = $(columns[3]).text().trim();
+      const subjectRows = $('tr:not(.textcolor):not(.background1):has(td[align])');
+      subjectRows.map((index, element) => {
+        if (element.children.length === 5 || element.children.length === 2) {
+          let subjectName, marksExternal = '', marksInternal = '', marksTotal = '', subjectGrade = '';
+          const row = $(element);
+          subjectName = row.find('td').eq(0).text().trim();
+          if (element.children.length === 5) {
+            marksExternal = row.find('td').eq(1).text().trim();
+            marksInternal = row.find('td').eq(2).text().trim();
+            marksTotal = row.find('td').eq(3).text().trim();
+            subjectGrade = row.find('td').eq(4).text().trim();
+            totalMarks += 100;
+          } else {
+            subjectGrade = row.find('td').eq(1).text().trim();
+          }
 
           subjectDetails.push({
-            subject: subject,
-            totalMarks: totalMarks,
-            obtainedMarks: obtainedMarks,
-            grade: grade
+            subject: subjectName,
+            marksExternal: marksExternal,
+            marksInternal: marksInternal,
+            totalMarks: marksTotal,
+            grade: subjectGrade
           });
         }
-      });
+
+      }).get();
 
       subjectDetails.forEach((subject) => {
         if (!columns.find((column) => (column.header as string).includes(`${subject.subject}`))) {
-          // columns.push({ header: `${subject.subject}-TotalMarks`, key: `${subject.subject}-TotalMarks` });
-          columns.push({ header: `${subject.subject}-ObtainedMarks`, key: `${subject.subject}-ObtainedMarks` });
-          // columns.push({ header: `${subject.subject}-Grade`, key: `${subject.subject}-Grade` });
+          columns.push({ header: `${subject.subject}-ExternalMarks`, key: `${subject.subject}-ExternalMarks` });
+          columns.push({ header: `${subject.subject}-InternalMarks`, key: `${subject.subject}-InternalMarks` });
+          columns.push({ header: `${subject.subject}-TotalMarks`, key: `${subject.subject}-TotalMarks` });
+          columns.push({ header: `${subject.subject}-Grade`, key: `${subject.subject}-Grade` });
         }
       });
 
@@ -127,17 +126,16 @@ export class TenthService {
         Result: result,
         TotalMarks: totalMarks,
         ObtainedMarks: obtainedMarks,
-        Grade: grade,
-        OverallPercentile: `${overallPercentile}%`,
-        SciencePercentile: `${sciencePercentile}%`,
-        TheoryPercentile: `${theoryPercentile}%`,
-        Percentage: `${((parseFloat(obtainedMarks) / parseFloat(totalMarks)) * 100).toFixed(2)}%`
+        Grade: overallGrade,
+        Percentile: percentileRank,
+        Percentage: `${((parseFloat(obtainedMarks) / totalMarks) * 100).toFixed(2)}%`
       };
 
       subjectDetails.forEach((subject) => {
-        // data[`${subject.subject}-TotalMarks`] = subject.totalMarks;
-        data[`${subject.subject}-ObtainedMarks`] = subject.obtainedMarks;
-        // data[`${subject.subject}-Grade`] = subject.grade;
+        data[`${subject.subject}-ExternalMarks`] = subject.marksExternal;
+        data[`${subject.subject}-InternalMarks`] = subject.marksInternal;
+        data[`${subject.subject}-TotalMarks`] = subject.totalMarks;
+        data[`${subject.subject}-Grade`] = subject.grade;
       });
       rowsData.push(data);
     }
@@ -150,9 +148,7 @@ export class TenthService {
       { header: 'TotalMarks', key: 'TotalMarks' },
       { header: 'ObtainedMarks', key: 'ObtainedMarks' },
       { header: 'Grade', key: 'Grade' },
-      { header: 'OverallPercentile', key: 'OverallPercentile' },
-      { header: 'SciencePercentile', key: 'SciencePercentile' },
-      { header: 'TheoryPercentile', key: 'TheoryPercentile' },
+      { header: 'Percentile', key: 'Percentile' },
       { header: 'Percentage', key: 'Percentage' },
       ...columns,
     ];

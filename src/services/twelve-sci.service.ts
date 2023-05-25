@@ -9,8 +9,6 @@ import { firstValueFrom } from 'rxjs';
 const fs = require('fs');
 const cheerio = require('cheerio');
 const csv = require('csv-parser');
-var xpath = require('xpath')
-var dom = require('xmldom').DOMParser
 
 @Injectable()
 export class TwelveSciService {

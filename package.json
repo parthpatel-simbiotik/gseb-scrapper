@@ -31,9 +31,7 @@
     "exceljs": "^4.3.0",
     "moment": "^2.29.4",
     "reflect-metadata": "^0.1.13",
-    "rxjs": "^7.2.0",
-    "xmldom": "^0.6.0",
-    "xpath": "^0.0.32"
+    "rxjs": "^7.2.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",
