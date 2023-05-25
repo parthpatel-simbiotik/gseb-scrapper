@@ -30,7 +30,7 @@ export class TenthService {
   }
 
   async scrapResultsClass10(baseurl: string, res: Response) {
-    var inputFilePath = 'files/input/kunadssc1.csv';
+    var inputFilePath = 'files/input/leenaben1.csv';
     var outputFileDirectory = `files/output${inputFilePath.substring(inputFilePath.lastIndexOf('/'), inputFilePath.lastIndexOf('.'))}/`;
     console.log('HAELLOEAO', inputFilePath, outputFileDirectory);
 
@@ -47,97 +47,101 @@ export class TenthService {
 
     // todo: api call
     for (let i = 0; i < seatNumbers.length; i++) {
-      console.log(`[Scrapping from ${baseurl}] [${i}/${seatNumbers.length}]`);
-      const seatNum = seatNumbers[i];
-      var htmlData = null;
+      try {
+        console.log(`[Scrapping from ${baseurl}] [${i}/${seatNumbers.length}]`);
+        const seatNum = seatNumbers[i];
+        var htmlData = null;
 
-      if (!existsSync(outputFileDirectory)) {
-        mkdirSync(outputFileDirectory);
-      }
-      if (!existsSync(`${outputFileDirectory}htmlFiles/`)) {
-        mkdirSync(`${outputFileDirectory}htmlFiles/`);
-      }
-      if (!existsSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`)) {
-        htmlData = await this.doRequestCall(`${baseurl}285soipmahc/ssc/${seatNum['SeatNumber'].substring(0, 3)}/${seatNum['SeatNumber'].substring(3, 5)}/${seatNum['SeatNumber']}.html`);
-        writeFileSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`, htmlData);
-      } else {
-        htmlData = readFileSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`);
-      }
+        if (!existsSync(outputFileDirectory)) {
+          mkdirSync(outputFileDirectory);
+        }
+        if (!existsSync(`${outputFileDirectory}htmlFiles/`)) {
+          mkdirSync(`${outputFileDirectory}htmlFiles/`);
+        }
+        if (!existsSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`)) {
+          htmlData = await this.doRequestCall(`${baseurl}285soipmahc/ssc/${seatNum['SeatNumber'].substring(0, 3)}/${seatNum['SeatNumber'].substring(3, 5)}/${seatNum['SeatNumber']}.html`);
+          writeFileSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`, htmlData);
+        } else {
+          htmlData = readFileSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`);
+        }
 
-      let $ = cheerio.load(htmlData.toString());
+        let $ = cheerio.load(htmlData.toString());
 
-      // Fetch the name
-      const nameElement = $('b.textcolor:contains("Name:")');
-      const name = nameElement.parent().text().trim().replace('Name:', '').trim();
+        // Fetch the name
+        const nameElement = $('b.textcolor:contains("Name:")');
+        const name = nameElement.parent().text().trim().replace('Name:', '').trim();
 
-      const sidElement = $('b.textcolor:contains("SID:")');
-      const sid = sidElement.parent().text().trim().replace('SID:', '').trim();
+        const sidElement = $('b.textcolor:contains("SID:")');
+        const sid = sidElement.parent().text().trim().replace('SID:', '').trim();
 
-      const resultElement = $('b.textcolor:contains("Result:")');
-      const result = resultElement.parent().text().trim().replace('Result:', '').trim();
+        const resultElement = $('b.textcolor:contains("Result:")');
+        const result = resultElement.parent().text().trim().replace('Result:', '').trim();
 
-      const obtainedMarks = $('tr.background1 td[colspan="4"] b.texcolor').text().split(' (')[0];
-      const overallGrade = $('tr.textcolor.background1.highlitedtd td').eq(0).text().trim();
-      const percentileRank = $('tr.textcolor.background1.highlitedtd td').eq(1).text().trim();
+        const obtainedMarks = $('tr.background1 td[colspan="4"] b.texcolor').text().split(' (')[0];
+        const overallGrade = $('tr.textcolor.background1.highlitedtd td').eq(0).text().trim();
+        const percentileRank = $('tr.textcolor.background1.highlitedtd td').eq(1).text().trim();
 
-      // Fetch the subject-wise details
-      let totalMarks = 0;
-      const subjectDetails = [];
-      const subjectRows = $('tr:not(.textcolor):not(.background1):has(td[align])');
-      subjectRows.map((index, element) => {
-        if (element.children.length === 5 || element.children.length === 2) {
-          let subjectName, marksExternal = '', marksInternal = '', marksTotal = '', subjectGrade = '';
-          const row = $(element);
-          subjectName = row.find('td').eq(0).text().trim();
-          if (element.children.length === 5) {
-            marksExternal = row.find('td').eq(1).text().trim();
-            marksInternal = row.find('td').eq(2).text().trim();
-            marksTotal = row.find('td').eq(3).text().trim();
-            subjectGrade = row.find('td').eq(4).text().trim();
-            totalMarks += 100;
-          } else {
-            subjectGrade = row.find('td').eq(1).text().trim();
+        // Fetch the subject-wise details
+        let totalMarks = 0;
+        const subjectDetails = [];
+        const subjectRows = $('tr:not(.textcolor):not(.background1):has(td[align])');
+        subjectRows.map((index, element) => {
+          if (element.children.length === 5 || element.children.length === 2) {
+            let subjectName, marksExternal = '', marksInternal = '', marksTotal = '', subjectGrade = '';
+            const row = $(element);
+            subjectName = row.find('td').eq(0).text().trim();
+            if (element.children.length === 5) {
+              marksExternal = row.find('td').eq(1).text().trim();
+              marksInternal = row.find('td').eq(2).text().trim();
+              marksTotal = row.find('td').eq(3).text().trim();
+              subjectGrade = row.find('td').eq(4).text().trim();
+              totalMarks += 100;
+            } else {
+              subjectGrade = row.find('td').eq(1).text().trim();
+            }
+
+            subjectDetails.push({
+              subject: subjectName,
+              marksExternal: marksExternal,
+              marksInternal: marksInternal,
+              totalMarks: marksTotal,
+              grade: subjectGrade
+            });
           }
 
-          subjectDetails.push({
-            subject: subjectName,
-            marksExternal: marksExternal,
-            marksInternal: marksInternal,
-            totalMarks: marksTotal,
-            grade: subjectGrade
-          });
-        }
+        }).get();
 
-      }).get();
+        subjectDetails.forEach((subject) => {
+          if (!columns.find((column) => (column.header as string).includes(`${subject.subject}`))) {
+            columns.push({ header: `${subject.subject}-ExternalMarks`, key: `${subject.subject}-ExternalMarks` });
+            columns.push({ header: `${subject.subject}-InternalMarks`, key: `${subject.subject}-InternalMarks` });
+            columns.push({ header: `${subject.subject}-TotalMarks`, key: `${subject.subject}-TotalMarks` });
+            columns.push({ header: `${subject.subject}-Grade`, key: `${subject.subject}-Grade` });
+          }
+        });
 
-      subjectDetails.forEach((subject) => {
-        if (!columns.find((column) => (column.header as string).includes(`${subject.subject}`))) {
-          columns.push({ header: `${subject.subject}-ExternalMarks`, key: `${subject.subject}-ExternalMarks` });
-          columns.push({ header: `${subject.subject}-InternalMarks`, key: `${subject.subject}-InternalMarks` });
-          columns.push({ header: `${subject.subject}-TotalMarks`, key: `${subject.subject}-TotalMarks` });
-          columns.push({ header: `${subject.subject}-Grade`, key: `${subject.subject}-Grade` });
-        }
-      });
+        let data = {
+          SeatNumber: seatNum['SeatNumber'],
+          Name: name,
+          SID: sid,
+          Result: result,
+          TotalMarks: totalMarks,
+          ObtainedMarks: obtainedMarks,
+          Grade: overallGrade,
+          Percentile: percentileRank,
+          Percentage: `${((parseFloat(obtainedMarks) / totalMarks) * 100).toFixed(2)}%`
+        };
 
-      let data = {
-        SeatNumber: seatNum['SeatNumber'],
-        Name: name,
-        SID: sid,
-        Result: result,
-        TotalMarks: totalMarks,
-        ObtainedMarks: obtainedMarks,
-        Grade: overallGrade,
-        Percentile: percentileRank,
-        Percentage: `${((parseFloat(obtainedMarks) / totalMarks) * 100).toFixed(2)}%`
-      };
-
-      subjectDetails.forEach((subject) => {
-        data[`${subject.subject}-ExternalMarks`] = subject.marksExternal;
-        data[`${subject.subject}-InternalMarks`] = subject.marksInternal;
-        data[`${subject.subject}-TotalMarks`] = subject.totalMarks;
-        data[`${subject.subject}-Grade`] = subject.grade;
-      });
-      rowsData.push(data);
+        subjectDetails.forEach((subject) => {
+          data[`${subject.subject}-ExternalMarks`] = subject.marksExternal;
+          data[`${subject.subject}-InternalMarks`] = subject.marksInternal;
+          data[`${subject.subject}-TotalMarks`] = subject.totalMarks;
+          data[`${subject.subject}-Grade`] = subject.grade;
+        });
+        rowsData.push(data);
+      } catch (e) {
+        console.log('Error', e);
+      }
     }
 
     sheet.columns = [
