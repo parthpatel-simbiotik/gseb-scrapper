@@ -4,12 +4,14 @@ import { Response } from 'express';
 import { Scrap12SciDto } from './dto/scrap12sci.dto';
 import { TwelveSciService } from './services/twelve-sci.service';
 import { TenthService } from './services/tenth.service';
+import { TwelveGenService } from './services/twelve-gen.service';
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appService: AppService,
-    private readonly twelevesciService: TwelveSciService,
+    private readonly tweleveSciService: TwelveSciService,
+    private readonly tweleveGenService: TwelveGenService,
     private readonly tenthService: TenthService
   ) { }
 
@@ -18,9 +20,14 @@ export class AppController {
     return this.appService.getHello();
   }
 
+  @Post('/scrap/12gen')
+  scrapResultsfor12gen(@Res() res: Response) {
+    return this.tweleveGenService.scrapRecurrsively(res);
+  }
+
   @Post('/scrap/12sci')
   scrapResultsfor12sci(@Res() res: Response) {
-    return this.twelevesciService.scrapRecurrsively(res);
+    return this.tweleveSciService.scrapRecurrsively(res);
   }
 
   @Post('/scrap/10th')

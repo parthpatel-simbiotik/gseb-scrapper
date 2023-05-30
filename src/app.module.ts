@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { HttpModule } from '@nestjs/axios';
 import { TwelveSciService } from './services/twelve-sci.service';
 import { TenthService } from './services/tenth.service';
+import { TwelveGenService } from './services/twelve-gen.service';
 
 @Module({
   imports: [HttpModule],
@@ -11,6 +12,7 @@ import { TenthService } from './services/tenth.service';
   providers: [
     AppService,
     TwelveSciService,
+    TwelveGenService,
     TenthService,
   ],
 })
