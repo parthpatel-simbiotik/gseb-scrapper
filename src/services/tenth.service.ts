@@ -30,7 +30,7 @@ export class TenthService {
   }
 
   async scrapResultsClass10(baseurl: string, res: Response) {
-    var inputFilePath = 'files/input/leenaben1.csv';
+    var inputFilePath = 'files/input/gm-ssc.csv';
     var outputFileDirectory = `files/output${inputFilePath.substring(inputFilePath.lastIndexOf('/'), inputFilePath.lastIndexOf('.'))}/`;
     console.log('HAELLOEAO', inputFilePath, outputFileDirectory);
 
@@ -171,6 +171,112 @@ export class TenthService {
         fgColor: { argb: 'fdf731' },
       };
     });
+
+    // TEST : BETA ANALYSIS SHEET
+    const analysisSheet = workbook.addWorksheet('SSC-Analysis');
+
+    const resultPercentage = `${((rowsData.filter((row) => row.Result.includes('QUALIFIED')).length / rowsData.length) * 100).toFixed(2)}%`;
+    let resultPercentageRow = analysisSheet.addRow(['Result Percentage', resultPercentage]);
+    resultPercentageRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      bgColor: { argb: 'fffdf731' },
+      fgColor: { argb: 'fffdf731' },
+    };
+    resultPercentageRow.font = { bold: true };
+
+    /////
+    analysisSheet.addRows(['', '']);
+    /////
+
+    let resultAnalysisHeaderRow = analysisSheet.addRow(['Result wise analysis']);
+    resultAnalysisHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      bgColor: { argb: 'fffdf731' },
+      fgColor: { argb: 'fffdf731' },
+    };
+    resultAnalysisHeaderRow.font = { bold: true };
+
+    analysisSheet.addRow(['Result', 'Count']);
+
+    const resultWiseAnalysis = {};
+    rowsData.forEach((row) => {
+      if (resultWiseAnalysis[row.Result]) {
+        resultWiseAnalysis[row.Result] += 1;
+      } else {
+        resultWiseAnalysis[row.Result] = 1;
+      }
+    });
+
+    Object.keys(resultWiseAnalysis).sort().forEach((key) => {
+      analysisSheet.addRow([key, resultWiseAnalysis[key]]);
+    });
+
+    /////
+    analysisSheet.addRows(['', '']);
+    /////
+
+    let gradeWiseAnalysisHeaderRow = analysisSheet.addRow(['Grade wise analysis']);
+    gradeWiseAnalysisHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      bgColor: { argb: 'fffdf731' },
+      fgColor: { argb: 'fffdf731' },
+    };
+    gradeWiseAnalysisHeaderRow.font = { bold: true };
+
+    analysisSheet.addRow(['Grade', 'Count']);
+    const gradeWiseAnalysis = {};
+    rowsData.forEach((row) => {
+      if (gradeWiseAnalysis[row.Grade]) {
+        gradeWiseAnalysis[row.Grade] += 1;
+      } else {
+        gradeWiseAnalysis[row.Grade] = 1;
+      }
+    });
+    Object.keys(gradeWiseAnalysis).sort().forEach((key) => {
+      analysisSheet.addRow([key, gradeWiseAnalysis[key]]);
+    });
+
+    /////
+    analysisSheet.addRows(['', '']);
+    /////
+
+    let subjectWiseAnalysisHeaderRow = analysisSheet.addRow(['Subject wise grade wise analysis']);
+    subjectWiseAnalysisHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      bgColor: { argb: 'fffdf731' },
+      fgColor: { argb: 'fffdf731' },
+    };
+    subjectWiseAnalysisHeaderRow.font = { bold: true };
+
+    analysisSheet.addRow(['Subject', 'Grade', 'Count']);
+    const subjectWiseGradeAnalysis = {};
+    rowsData.forEach((row) => {
+      Object.keys(row).forEach((key) => {
+        if (key.includes('Grade') && key !== 'Grade') {
+          if (subjectWiseGradeAnalysis[key]) {
+            if (subjectWiseGradeAnalysis[key][row[key]]) {
+              subjectWiseGradeAnalysis[key][row[key]] += 1;
+            } else {
+              subjectWiseGradeAnalysis[key][row[key]] = 1;
+            }
+          } else {
+            subjectWiseGradeAnalysis[key] = {};
+            subjectWiseGradeAnalysis[key][row[key]] = 1
+          }
+        }
+      });
+    });
+    Object.keys(subjectWiseGradeAnalysis).forEach((key) => {
+      Object.keys(subjectWiseGradeAnalysis[key]).sort().forEach((grade) => {
+        analysisSheet.addRow([key, grade, subjectWiseGradeAnalysis[key][grade]]);
+      });
+    });
+
+    analysisSheet.getColumn(1).width = 40;
 
     res.attachment(
       `SSC-GEN-Result-${moment().format('YYYY-MM-DD hh:mm:ss a')}.xlsx`,

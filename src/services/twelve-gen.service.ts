@@ -110,7 +110,7 @@ export class TwelveGenService {
         if (!columns.find((column) => (column.header as string).includes(`${subject.subject}`))) {
           // columns.push({ header: `${subject.subject}-TotalMarks`, key: `${subject.subject}-TotalMarks` });
           columns.push({ header: `${subject.subject}`, key: `${subject.subject}` });
-          // columns.push({ header: `${subject.subject}-Grade`, key: `${subject.subject}-Grade` });
+          columns.push({ header: `${subject.subject}-Grade`, key: `${subject.subject}-Grade` });
         }
       });
 
@@ -129,7 +129,7 @@ export class TwelveGenService {
       subjectDetails.forEach((subject) => {
         // data[`${subject.subject}-TotalMarks`] = subject.totalMarks;
         data[`${subject.subject}`] = subject.obtainedMarks;
-        // data[`${subject.subject}-Grade`] = subject.grade;
+        data[`${subject.subject}-Grade`] = subject.grade;
       });
       rowsData.push(data);
     }
