@@ -172,7 +172,7 @@ export class TenthService {
       };
     });
 
-    // TEST : BETA ANALYSIS SHEET
+    // BETA ANALYSIS SHEET
     const analysisSheet = workbook.addWorksheet('SSC-Analysis');
 
     const resultPercentage = `${((rowsData.filter((row) => row.Result.includes('QUALIFIED')).length / rowsData.length) * 100).toFixed(2)}%`;

@@ -30,7 +30,7 @@ export class TwelveSciService {
   }
 
   async scrapResultsClass12(baseurl: string, res: Response) {
-    var inputFilePath = 'files/input/hscsci1.csv';
+    var inputFilePath = 'files/input/gm-hsc-sci.csv';
     var outputFileDirectory = `files/output${inputFilePath.substring(inputFilePath.lastIndexOf('/'), inputFilePath.lastIndexOf('.'))}/`;
     console.log('HAELLOEAO', inputFilePath, outputFileDirectory);
 
@@ -114,7 +114,7 @@ export class TwelveSciService {
         if (!columns.find((column) => (column.header as string).includes(`${subject.subject}`))) {
           // columns.push({ header: `${subject.subject}-TotalMarks`, key: `${subject.subject}-TotalMarks` });
           columns.push({ header: `${subject.subject}-ObtainedMarks`, key: `${subject.subject}-ObtainedMarks` });
-          // columns.push({ header: `${subject.subject}-Grade`, key: `${subject.subject}-Grade` });
+          columns.push({ header: `${subject.subject}-Grade`, key: `${subject.subject}-Grade` });
         }
       });
 
@@ -126,16 +126,16 @@ export class TwelveSciService {
         TotalMarks: totalMarks,
         ObtainedMarks: obtainedMarks,
         Grade: grade,
-        OverallPercentile: `${overallPercentile}%`,
-        SciencePercentile: `${sciencePercentile}%`,
-        TheoryPercentile: `${theoryPercentile}%`,
+        OverallPercentile: `${overallPercentile}`,
+        SciencePercentile: `${sciencePercentile}`,
+        TheoryPercentile: `${theoryPercentile}`,
         Percentage: `${((parseFloat(obtainedMarks) / parseFloat(totalMarks)) * 100).toFixed(2)}%`
       };
 
       subjectDetails.forEach((subject) => {
         // data[`${subject.subject}-TotalMarks`] = subject.totalMarks;
         data[`${subject.subject}-ObtainedMarks`] = subject.obtainedMarks;
-        // data[`${subject.subject}-Grade`] = subject.grade;
+        data[`${subject.subject}-Grade`] = subject.grade;
       });
       rowsData.push(data);
     }
@@ -169,6 +169,112 @@ export class TwelveSciService {
         fgColor: { argb: 'fdf731' },
       };
     });
+
+    // BETA ANALYSIS SHEET
+    const analysisSheet = workbook.addWorksheet('HSC-Analysis');
+
+    const resultPercentage = `${((rowsData.filter((row) => row.Result.includes('Eligible')).length / rowsData.length) * 100).toFixed(2)}%`;
+    let resultPercentageRow = analysisSheet.addRow(['Result Percentage', resultPercentage]);
+    resultPercentageRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      bgColor: { argb: 'fffdf731' },
+      fgColor: { argb: 'fffdf731' },
+    };
+    resultPercentageRow.font = { bold: true };
+
+    /////
+    analysisSheet.addRows(['', '']);
+    /////
+
+    let resultAnalysisHeaderRow = analysisSheet.addRow(['Result wise analysis']);
+    resultAnalysisHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      bgColor: { argb: 'fffdf731' },
+      fgColor: { argb: 'fffdf731' },
+    };
+    resultAnalysisHeaderRow.font = { bold: true };
+
+    analysisSheet.addRow(['Result', 'Count']);
+
+    const resultWiseAnalysis = {};
+    rowsData.forEach((row) => {
+      if (resultWiseAnalysis[row.Result]) {
+        resultWiseAnalysis[row.Result] += 1;
+      } else {
+        resultWiseAnalysis[row.Result] = 1;
+      }
+    });
+
+    Object.keys(resultWiseAnalysis).sort().forEach((key) => {
+      analysisSheet.addRow([key, resultWiseAnalysis[key]]);
+    });
+
+    /////
+    analysisSheet.addRows(['', '']);
+    /////
+
+    let gradeWiseAnalysisHeaderRow = analysisSheet.addRow(['Grade wise analysis']);
+    gradeWiseAnalysisHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      bgColor: { argb: 'fffdf731' },
+      fgColor: { argb: 'fffdf731' },
+    };
+    gradeWiseAnalysisHeaderRow.font = { bold: true };
+
+    analysisSheet.addRow(['Grade', 'Count']);
+    const gradeWiseAnalysis = {};
+    rowsData.forEach((row) => {
+      if (gradeWiseAnalysis[row.Grade]) {
+        gradeWiseAnalysis[row.Grade] += 1;
+      } else {
+        gradeWiseAnalysis[row.Grade] = 1;
+      }
+    });
+    Object.keys(gradeWiseAnalysis).sort().forEach((key) => {
+      analysisSheet.addRow([key, gradeWiseAnalysis[key]]);
+    });
+
+    /////
+    analysisSheet.addRows(['', '']);
+    /////
+
+    let subjectWiseAnalysisHeaderRow = analysisSheet.addRow(['Subject wise grade wise analysis']);
+    subjectWiseAnalysisHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      bgColor: { argb: 'fffdf731' },
+      fgColor: { argb: 'fffdf731' },
+    };
+    subjectWiseAnalysisHeaderRow.font = { bold: true };
+
+    analysisSheet.addRow(['Subject', 'Grade', 'Count']);
+    const subjectWiseGradeAnalysis = {};
+    rowsData.forEach((row) => {
+      Object.keys(row).forEach((key) => {
+        if (key.includes('Grade') && key !== 'Grade') {
+          if (subjectWiseGradeAnalysis[key]) {
+            if (subjectWiseGradeAnalysis[key][row[key]]) {
+              subjectWiseGradeAnalysis[key][row[key]] += 1;
+            } else {
+              subjectWiseGradeAnalysis[key][row[key]] = 1;
+            }
+          } else {
+            subjectWiseGradeAnalysis[key] = {};
+            subjectWiseGradeAnalysis[key][row[key]] = 1
+          }
+        }
+      });
+    });
+    Object.keys(subjectWiseGradeAnalysis).forEach((key) => {
+      Object.keys(subjectWiseGradeAnalysis[key]).sort().forEach((grade) => {
+        analysisSheet.addRow([key, grade, subjectWiseGradeAnalysis[key][grade]]);
+      });
+    });
+
+    analysisSheet.getColumn(1).width = 40;
 
     res.attachment(
       `HSC-Sci-Result-${moment().format('YYYY-MM-DD hh:mm:ss a')}.xlsx`,
