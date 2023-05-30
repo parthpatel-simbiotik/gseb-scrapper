@@ -141,9 +141,9 @@ export class TwelveGenService {
       { header: 'Result', key: 'Result' },
       { header: 'TotalMarks', key: 'TotalMarks' },
       { header: 'ObtainedMarks', key: 'ObtainedMarks' },
+      { header: 'Percentage', key: 'Percentage' },
       { header: 'Grade', key: 'Grade' },
       { header: 'Percentile', key: 'Percentile' },
-      { header: 'Percentage', key: 'Percentage' },
       ...columns,
     ];
 
