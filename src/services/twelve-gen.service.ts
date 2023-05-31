@@ -14,19 +14,19 @@ const csv = require('csv-parser');
 export class TwelveGenService {
   constructor(private httpService: HttpService) { }
 
-  async scrapRecurrsively(res: Response) {
+  async scrapRecurrsively(filename: string, res: Response) {
     var servers = await this.csvToRows('files/servers.csv');
     console.log('servers', servers);
 
     for (let i = 0; i < servers.length; i++) {
       const server = servers[i];
       console.log(`[Scrapping from ${server['Servers']}] [${i}/${servers.length}]`);
-      this.scrapResultsClass12(server['Servers'], res);
+      this.scrapResultsClass12(filename, server['Servers'], res);
     }
   }
 
-  async scrapResultsClass12(baseurl: string, res: Response) {
-    var inputFilePath = 'files/input/test1.csv';
+  async scrapResultsClass12(filename: string, baseurl: string, res: Response) {
+    var inputFilePath = filename ?? 'files/input/gm-12gen.csv';
     var outputFileDirectory = `files/output${inputFilePath.substring(inputFilePath.lastIndexOf('/'), inputFilePath.lastIndexOf('.'))}/`;
     console.log('HAELLOEAO', inputFilePath, outputFileDirectory);
 
@@ -55,8 +55,12 @@ export class TwelveGenService {
       }
       if (!existsSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`)) {
         htmlData = await this.doRequestCall(`${baseurl}3015ecruosnepo/gen/${seatNum['SeatNumber'].substring(0, 3)}/${seatNum['SeatNumber'].substring(3, 5)}/${seatNum['SeatNumber']}.html`);
-        if (htmlData != null && htmlData.includes('Please try again.')) {
+        if (htmlData == null || (htmlData != null && htmlData.includes('Please try again.'))) {
           console.log('Please try again. received for ', seatNum['SeatNumber']);
+          rowsData.push({
+            SeatNumber: seatNum['SeatNumber'],
+            Result: "Please try again"
+          });
           continue;
         }
         writeFileSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`, htmlData);

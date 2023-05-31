@@ -21,8 +21,8 @@ export class AppController {
   }
 
   @Post('/scrap/12gen')
-  scrapResultsfor12gen(@Res() res: Response) {
-    return this.tweleveGenService.scrapRecurrsively(res);
+  scrapResultsfor12gen(@Res() res: Response, @Query('filename') filename: string) {
+    return this.tweleveGenService.scrapRecurrsively(filename, res);
   }
 
   @Post('/scrap/12sci')
