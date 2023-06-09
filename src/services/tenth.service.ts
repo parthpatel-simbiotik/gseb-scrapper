@@ -30,7 +30,7 @@ export class TenthService {
   }
 
   async scrapResultsClass10(baseurl: string, res: Response) {
-    var inputFilePath = 'files/input/gm-ssc.csv';
+    var inputFilePath = 'files/input/ntest1.csv';
     var outputFileDirectory = `files/output${inputFilePath.substring(inputFilePath.lastIndexOf('/'), inputFilePath.lastIndexOf('.'))}/`;
     console.log('HAELLOEAO', inputFilePath, outputFileDirectory);
 
@@ -59,7 +59,7 @@ export class TenthService {
           mkdirSync(`${outputFileDirectory}htmlFiles/`);
         }
         if (!existsSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`)) {
-          htmlData = await this.doRequestCall(`${baseurl}285soipmahc/ssc/${seatNum['SeatNumber'].substring(0, 3)}/${seatNum['SeatNumber'].substring(3, 5)}/${seatNum['SeatNumber']}.html`);
+          htmlData = await this.doRequestCall(`${baseurl}Result/SSCIndex`, seatNum['SeatNumber']);
           writeFileSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`, htmlData);
         } else {
           htmlData = readFileSync(`${outputFileDirectory}htmlFiles/${seatNum['SeatNumber']}.html`);
@@ -286,17 +286,27 @@ export class TenthService {
 
 
   // ======UTIL METHODS====== //
-  async doRequestCall(url: string) {
+  async doRequestCall(url: string, seatNumber: string) {
 
     console.log(env.NODE_TLS_REJECT_UNAUTHORIZED);
     if (!url.startsWith('http')) {
       url = `http://${url}`;
     }
     console.log(url);
-    let response = this.httpService.get(url, {});
+    let response = this.httpService.post(url, {
+      'InitialCharacter': seatNumber.substring(0, 1),
+      'SeatNo': seatNumber.substring(1),
+      'Captcha': 73,
+      'hdnCaptcha': '3B0Q0kq4BVgzswv7bTKU3Q=='
+    }, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': '.AspNetCore.Antiforgery.qvejqhAlN6E=CfDJ8KZJinNI3qBEiMvfq2vlE5Nlv5-PWBru-0ChUs_0a6_NiWPrmNbmGR4ddY-YQbKJ8fnrfpvoCS7AoQPI1AYM54g60sPK2eg347WxKjpOZCUi-jyPXWP3QwxcBAMb2TkekxVFF6-I5sy4uhpQdL2y7kw'
+      }
+    });
     try {
       let resp = await firstValueFrom(response);
-      // console.log(url, 'success', resp.data);
+      console.log(url, 'success', resp.request, resp.data);
       return resp.data;
     } catch (ex) {
       console.log(url, 'failure', ex);
